@@ -71,15 +71,15 @@ def translate_title_with_gemini(client, model_name, chinese_title):
             result = re.sub(r'[\s\\/:*?"<>|]+', ' ', result).strip()
             return result
     except Exception as e:
-        st.error(f"Gemini request failed: {e}")
+        st.error(f"Ошибка Gemini для заголовка '{chinese_title}': {e}")
     return None
 
-def process_translation(target_dir, project_id, model_name, status_container):
-    client = genai.Client(
-        vertexai=True, 
-        project=project_id,
-        location="global"
-    )
+def process_translation(target_dir, api_key, model_name, status_container):
+    if not api_key:
+        status_container.error("Пожалуйста, введите ваш Gemini API Key!")
+        return False
+
+    client = genai.Client(api_key=api_key)
 
     filename_pattern = re.compile(r'^(\d+)_(.*)$')
     try:
@@ -143,12 +143,15 @@ def process_translation(target_dir, project_id, model_name, status_container):
     status_container.success(f"All operations complete! Successfully translated and renamed {rename_count} files.")
     return True
 
-# --- STREAMLIT UI ---
+# =====================================================
+# STREAMLIT UI
+# =====================================================
+
 st.title("🌐 Gemini Chapter Filename Translator")
 st.write("Upload your chapter text files to automatically translate Chinese titles into dramatic Russian book chapters via Gemini.")
 
-project_id_input = st.text_input("Vertex AI Project ID", value="project-d378ee9b-d3bd-47de-a34")
-model_input = st.text_input("Gemini Model Name", value="gemini-2.5-flash") # or preview model
+api_key_input = st.text_input("Gemini API Key", type="password", value="")
+model_input = st.text_input("Gemini Model Name", value="gemini-2.5-flash")
 
 uploaded_files = st.file_uploader("Upload chapter .txt files", accept_multiple_files=True, type=["txt"])
 
@@ -161,7 +164,7 @@ if uploaded_files:
 
 if st.button("Start Filename Translation"):
     status_box = st.empty()
-    success = process_translation("input", project_id_input, model_input, status_box)
+    success = process_translation("input", api_key_input, model_input, status_box)
     
     if success:
         shutil.make_archive("translated_filenames_output", 'zip', "input")
