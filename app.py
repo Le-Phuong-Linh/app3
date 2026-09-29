@@ -2,6 +2,7 @@ import streamlit as st
 import os
 import re
 import shutil
+import time
 from google import genai
 
 # =====================================================
@@ -61,17 +62,27 @@ def parse_part_marker(title_text):
 
 def translate_title_with_gemini(client, model_name, chinese_title):
     prompt_content = f"{SYSTEM_PROMPT}\n\nInput: {chinese_title}"
-    try:
-        response = client.models.generate_content(
-            model=model_name,
-            contents=prompt_content
-        )
-        if response and response.text:
-            result = response.text.strip().replace('*', '').replace('"', '')
-            result = re.sub(r'[\s\\/:*?"<>|]+', ' ', result).strip()
-            return result
-    except Exception as e:
-        st.error(f"Ошибка Gemini для заголовка '{chinese_title}': {e}")
+    max_retries = 3
+    
+    for attempt in range(max_retries):
+        try:
+            response = client.models.generate_content(
+                model=model_name,
+                contents=prompt_content
+            )
+            if response and response.text:
+                result = response.text.strip().replace('*', '').replace('"', '')
+                result = re.sub(r'[\s\\/:*?"<>|]+', ' ', result).strip()
+                # Небольшая пауза между успешными запросами, чтобы уберечься от лимитов
+                time.sleep(1.0)
+                return result
+        except Exception as e:
+            if "503" in str(e) or "RESOURCE_EXHAUSTED" in str(e):
+                if attempt < max_retries - 1:
+                    time.sleep(3 * (attempt + 1)) # Увеличиваем паузу при каждой ошибке
+                    continue
+            st.error(f"Ошибка Gemini для заголовка '{chinese_title}': {e}")
+            break
     return None
 
 def process_translation(target_dir, api_key, model_name, status_container):
