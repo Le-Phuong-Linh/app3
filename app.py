@@ -151,7 +151,7 @@ st.title("🌐 Gemini Chapter Filename Translator")
 st.write("Upload your chapter text files to automatically translate Chinese titles into dramatic Russian book chapters via Gemini.")
 
 api_key_input = st.text_input("Gemini API Key", type="password", value="")
-model_input = st.text_input("Gemini Model Name", value="gemini-2.5-flash")
+model_input = st.text_input("Gemini Model Name", value="gemini-3-flash-preview")
 
 uploaded_files = st.file_uploader("Upload chapter .txt files", accept_multiple_files=True, type=["txt"])
 
