@@ -73,13 +73,12 @@ def translate_title_with_gemini(client, model_name, chinese_title):
             if response and response.text:
                 result = response.text.strip().replace('*', '').replace('"', '')
                 result = re.sub(r'[\s\\/:*?"<>|]+', ' ', result).strip()
-                # Небольшая пауза между успешными запросами, чтобы уберечься от лимитов
-                time.sleep(1.0)
+                time.sleep(1.0) # Small delay to respect API limits
                 return result
         except Exception as e:
             if "503" in str(e) or "RESOURCE_EXHAUSTED" in str(e):
                 if attempt < max_retries - 1:
-                    time.sleep(3 * (attempt + 1)) # Увеличиваем паузу при каждой ошибке
+                    time.sleep(3 * (attempt + 1))
                     continue
             st.error(f"Ошибка Gemini для заголовка '{chinese_title}': {e}")
             break
@@ -162,15 +161,23 @@ st.title("🌐 Gemini Chapter Filename Translator")
 st.write("Upload your chapter text files to automatically translate Chinese titles into dramatic Russian book chapters via Gemini.")
 
 api_key_input = st.text_input("Gemini API Key", type="password", value="")
-model_input = st.text_input("Gemini Model Name", value="gemini-3-flash-preview")
+model_input = st.text_input("Gemini Model Name", value="gemini-2.5-flash") # or gemini-3-flash-preview
 
 uploaded_files = st.file_uploader("Upload chapter .txt files", accept_multiple_files=True, type=["txt"])
 
 if uploaded_files:
     os.makedirs("input", exist_ok=True)
+    
+    # Clear out old files from previous runs so only the current batch is processed
+    for old_file in os.listdir("input"):
+        file_path = os.path.join("input", old_file)
+        if os.path.isfile(file_path):
+            os.remove(file_path)
+
     for uploaded_file in uploaded_files:
         with open(os.path.join("input", uploaded_file.name), "wb") as f:
             f.write(uploaded_file.getbuffer())
+            
     st.success(f"Successfully loaded {len(uploaded_files)} files ready for translation!")
 
 if st.button("Start Filename Translation"):
